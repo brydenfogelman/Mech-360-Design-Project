@@ -17,12 +17,8 @@ L = 1.5; % m
 nfs = 1.8; % Factor of Safety
 
 %% Setup
-
 alwStress = Sy * 10^6
-
 R = grossWieght / 2; % N, reaction force due to the weight of the plane
-
-phi = 8 * pi / 180; % Angle between the landing gear and the vertical axis
 
 %% Impact
 % Assuming that the impact speed is the descent speed and the approach
@@ -32,21 +28,19 @@ kineticEnergy = @(mass, speed) 0.5 * mass * speed^2;
 % To compute the impact stresses due to the impact, the descent velocity
 % was split into a different coordinate system where either could be
 % analyzed seperate of the other.
-impactEnergy = kineticEnergy(mass,descentSpeed) / 2 % spilt between both landing gears
 
-%% Formulas
-axial = @(F,A) F ./ A;
-bending = @(M, I, d) M .* d/2 ./ I;
+impactEnergy = kineticEnergy(mass,descentSpeed) / 2 % spilt between both landing gears
 
 %% Design Iteration for Impact
 % Hollow shaft with changing cross section
 
 % Paramters
-do_min = 0.31*2; % m
-do_max = 0.49*2;
-t = 0.13;
+do_min = 0.31*2; % m, smallest outer diameter
+do_max = 0.49*2; % m, largest outer diameter
+t = 0.13; % m, thickness of the landing gear
+phi = 8 * pi / 180; % rad, Angle between the landing gear and the vertical axis
 
-% Function for the changing cross section area
+% Functions for the changing cross section area
 do =    @(x) do_min + (do_max-do_min)*x/L;
 di =    @(x) do_min - 2*t + (do_max-do_min)*x/L;
 A =     @(x) pi / 4 * ((do(x)).^2 - (di(x)).^2); % areaNonUniformXSectionHollowShaft
@@ -70,17 +64,22 @@ Fg = V * density * g
 
 % Total Force
 F = R + Fg + P
-F_u = F * cos(phi)
-F_v = F * sin(phi)
+% Components of the total force
+F_u = F * cos(phi); % axial
+F_v = F * sin(phi); % bending
 
 % Stress at different points along the shaft
-stress = axial(F_u, A(d)) + bending(F_v, I(d), d);
+stress = F_u ./ A(d) + F_v * L * d/2 ./ I(d);
 
 % Finding the max Stress
 maxStress = max(stress)
 
 % Computing the safety factor
 n = alwStress / maxStress
+
+%% Impact Stress Plots
+
+% Figure(1)
 
 %% Design Iteration for Buckling
 % Assume one end free and the other fixed
